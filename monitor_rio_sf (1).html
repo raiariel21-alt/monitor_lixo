@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rio São Francisco — Monitor Ambiental</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --azul:#1565C0;--azul2:#1976D2;--azul-bg:#E3F2FD;--azul-lt:#BBDEFB;
+  --verde:#2E7D32;--verde2:#388E3C;--verde-bg:#E8F5E9;
+  --laranja:#E65100;--laranja2:#F57C00;--laranja-bg:#FFF3E0;
+  --vermelho:#C62828;--vermelho-bg:#FFEBEE;
+  --cinza:#455A64;--cinza-bg:#ECEFF1;--cinza-lt:#F5F5F5;
+  --bg:#F8F9FA;--card:#FFFFFF;--borda:#E0E0E0;
+  --txt:#1A1A2E;--txt2:#546E7A;--txt3:#90A4AE;
+  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:10px;--rl:14px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:14px;line-height:1.6}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:var(--sans)}
+
+/* ── TOPBAR ─────────────────────────── */
+.topbar{background:var(--azul);color:#fff;padding:.4rem 1.5rem;font-size:12px;display:flex;align-items:center;justify-content:space-between}
+.topbar-l{display:flex;align-items:center;gap:12px}
+.topbar-sep{opacity:.4}
+.topbar-live{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:99px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#69F0AE;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── NAV ────────────────────────────── */
+nav{background:var(--card);border-bottom:1px solid var(--borda);padding:.7rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:500;box-shadow:var(--shadow)}
+.nav-brand{display:flex;align-items:center;gap:11px}
+.nav-logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--azul),var(--azul2));display:flex;align-items:center;justify-content:center}
+.nav-logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round}
+.nav-name{font-size:15px;font-weight:700;color:var(--txt)}
+.nav-sub{font-size:11px;color:var(--txt3);margin-top:1px}
+.nav-menu{display:flex;gap:2px}
+.nav-item{padding:6px 12px;border-radius:7px;font-size:13px;color:var(--txt2);transition:all .15s;font-weight:500}
+.nav-item:hover,.nav-item.on{background:var(--azul-bg);color:var(--azul)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);padding:5px 12px;border-radius:7px;border:1px solid var(--borda);color:var(--txt2);background:var(--card)}
+.nav-badge.ok .live-dot{background:var(--verde2)}
+.nav-badge.err .live-dot{background:var(--laranja2)}
+
+/* ── HERO ───────────────────────────── */
+.hero{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 50%,#1976D2 100%);color:#fff;padding:2.5rem 1.5rem 5rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:60px;background:var(--bg);clip-path:ellipse(60% 100% at 50% 100%)}
+.hero-inner{position:relative;z-index:1;max-width:780px}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:4px 12px;font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem}
+.hero h1{font-size:30px;font-weight:700;line-height:1.2;margin-bottom:.75rem}
+.hero h1 span{opacity:.7;font-weight:400}
+.hero-desc{font-size:14px;opacity:.8;max-width:520px;margin-bottom:2rem}
+.hero-kpis{display:flex;gap:2rem;flex-wrap:wrap}
+.hero-kpi-val{font-family:var(--mono);font-size:24px;font-weight:700}
+.hero-kpi-lbl{font-size:12px;opacity:.65;margin-top:2px}
+
+/* ── ALERTA ─────────────────────────── */
+.alerta-zona{padding:.75rem 1.5rem 0}
+.alerta{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--r);font-size:13px;animation:slideIn .3s ease}
+.alerta.lixo{background:var(--vermelho-bg);border:1px solid #FFCDD2;color:var(--vermelho)}
+.alerta.livre{background:var(--verde-bg);border:1px solid #C8E6C9;color:var(--verde)}
+.alerta svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.alerta-msg{flex:1}
+.alerta-hora{font-family:var(--mono);font-size:11px;opacity:.7}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SECTION ────────────────────────── */
+.sec{padding:1.25rem 1.5rem}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.sec-title{font-size:11px;font-weight:700;font-family:var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px}
+.sec-title svg{width:12px;height:12px;stroke:var(--txt3);fill:none;stroke-width:2;stroke-linecap:round}
+.sec-action{font-size:12px;color:var(--azul2);font-weight:500}
+
+/* ── MÉTRICAS ───────────────────────── */
+.metricas{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.met{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:.85rem 1rem;box-shadow:var(--shadow);transition:all .2s}
+.met:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.met-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.met-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.met-ico svg{width:13px;height:13px;stroke-width:2.2;fill:none;stroke-linecap:round}
+.met-ico.az{background:var(--azul-bg)} .met-ico.az svg{stroke:var(--azul)}
+.met-ico.vd{background:var(--verde-bg)} .met-ico.vd svg{stroke:var(--verde)}
+.met-ico.lr{background:var(--laranja-bg)} .met-ico.lr svg{stroke:var(--laranja)}
+.met-ico.vm{background:var(--vermelho-bg)} .met-ico.vm svg{stroke:var(--vermelho)}
+.met-lbl{font-size:11px;color:var(--txt3);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.met-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--txt);line-height:1;margin-bottom:3px;transition:color .3s}
+.met-val.ok{color:var(--verde)} .met-val.er{color:var(--vermelho)} .met-val.az{color:var(--azul2)}
+.met-sub{font-size:11px;color:var(--txt3)}
+
+/* ── GRID ───────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.span2{grid-column:span 2}
+.full{grid-column:1/-1}
+
+/* ── CARD ───────────────────────────── */
+.card{background:var(--card);border:1px solid var(--borda);border-radius:var(--rl);padding:1.1rem 1.25rem;box-shadow:var(--shadow)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:700;font-family:var(--mono);color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.card-title svg{width:12px;height:12px;stroke:var(--txt2);fill:none;stroke-width:2;stroke-linecap:round}
+.chip{font-size:11px;padding:3px 9px;border-radius:99px;font-family:var(--mono);font-weight:600}
+.chip.vd{background:var(--verde-bg);color:var(--verde)} .chip.az{background:var(--azul-bg);color:var(--azul)} .chip.lr{background:var(--laranja-bg);color:var(--laranja)} .chip.vm{background:var(--vermelho-bg);color:var(--vermelho)}
+
+/* ── RADAR ──────────────────────────── */
+.radar-area{display:flex;flex-direction:column;align-items:center;gap:12px;padding:.25rem 0}
+.status-btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;font-weight:700;padding:6px 14px;border-radius:99px;border:none}
+.status-btn.lixo{background:var(--vermelho-bg);color:var(--vermelho)}
+.status-btn.livre{background:var(--verde-bg);color:var(--verde)}
+.radar-specs{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;margin-top:2px}
+.spec{background:var(--cinza-bg);border-radius:7px;padding:7px 9px}
+.spec-lbl{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono)}
+.spec-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)}
+
+/* ── MAPA ───────────────────────────── */
+#mapa{height:310px;border-radius:9px;border:1px solid var(--borda)}
+.mapa-legenda{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt2)}
+.leg-d{width:10px;height:10px;border-radius:50%}
+
+/* ── TIMELINE ───────────────────────── */
+.tl{display:flex;flex-direction:column;gap:5px;max-height:310px;overflow-y:auto;padding-right:2px}
+.tl::-webkit-scrollbar{width:3px} .tl::-webkit-scrollbar-thumb{background:var(--borda);border-radius:3px}
+.tl-ev{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;background:var(--cinza-lt);transition:background .15s}
+.tl-ev:hover{background:var(--cinza-bg)}
+.tl-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tl-ico svg{width:12px;height:12px;stroke-width:2.5;fill:none;stroke-linecap:round}
+.tl-ico.lixo{background:var(--vermelho-bg)} .tl-ico.lixo svg{stroke:var(--vermelho)}
+.tl-ico.livre{background:var(--verde-bg)} .tl-ico.livre svg{stroke:var(--verde)}
+.tl-txt{font-size:12px;font-weight:500;color:var(--txt)}
+.tl-hora{font-size:11px;color:var(--txt3);font-family:var(--mono)}
+.tl-dist{font-family:var(--mono);font-size:12px;color:var(--txt3);margin-left:auto;white-space:nowrap}
+
+/* ── RIO ────────────────────────────── */
+.rio-banner{background:linear-gradient(135deg,var(--azul-bg),#E1F5FE);border:1px solid var(--azul-lt);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:12px;display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap}
+.rio-texto h2{font-size:18px;font-weight:700;color:var(--azul);margin-bottom:.5rem}
+.rio-texto p{font-size:13px;color:var(--cinza);line-height:1.7;max-width:500px}
+.rio-fatos{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;flex:1;min-width:260px}
+.fato{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:.75rem 1rem}
+.fato-lbl{font-size:10px;font-family:var(--mono);color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.fato-val{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--txt)}
+.fato-desc{font-size:11px;color:var(--txt3);margin-top:1px}
+
+/* ── PROBLEMAS ──────────────────────── */
+.prob-lista{display:flex;flex-direction:column;gap:8px}
+.prob{display:flex;gap:11px;align-items:flex-start;padding:10px 12px;border-radius:9px;border-left:3px solid transparent}
+.prob.grave{background:var(--vermelho-bg);border-color:var(--vermelho)}
+.prob.medio{background:var(--laranja-bg);border-color:var(--laranja2)}
+.prob.leve{background:var(--verde-bg);border-color:var(--verde)}
+.prob svg{width:15px;height:15px;stroke-width:2;fill:none;stroke-linecap:round;flex-shrink:0;margin-top:2px}
+.prob.grave svg{stroke:var(--vermelho)} .prob.medio svg{stroke:var(--laranja)} .prob.leve svg{stroke:var(--verde)}
+.prob-titulo{font-size:13px;font-weight:600;color:var(--txt)}
+.prob-desc{font-size:12px;color:var(--txt2);margin-top:2px;line-height:1.55}
+
+/* ── SOBRE ──────────────────────────── */
+.sobre-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sobre-item{display:flex;gap:11px;align-items:flex-start;padding:.9rem;background:var(--cinza-lt);border-radius:var(--r)}
+.s-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s-ico svg{width:17px;height:17px;stroke-width:2;fill:none;stroke-linecap:round}
+.s-ico.az{background:var(--azul-bg)} .s-ico.az svg{stroke:var(--azul)}
+.s-ico.vd{background:var(--verde-bg)} .s-ico.vd svg{stroke:var(--verde)}
+.s-ico.lr{background:var(--laranja-bg)} .s-ico.lr svg{stroke:var(--laranja2)}
+.s-titulo{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px}
+.s-desc{font-size:12px;color:var(--txt2);line-height:1.55}
+
+/* ── CÓDIGO ─────────────────────────── */
+.tabs{display:flex;gap:5px;margin-bottom:10px}
+.tab{font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--borda);background:transparent;color:var(--txt2);transition:all .15s}
+.tab.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+pre{background:#0D1117;border-radius:var(--r);padding:1rem 1.25rem;font-family:var(--mono);font-size:12px;line-height:1.8;overflow-x:auto;color:#C9D1D9}
+.kw{color:#79C0FF} .str{color:#A5D6FF} .cm{color:#8B949E} .fn{color:#D2A8FF} .nm{color:#79C0FF}
+
+/* ── CHART ──────────────────────────── */
+.cw{position:relative}
+
+/* ── EQUIPE ─────────────────────────── */
+.equipe-banner{background:linear-gradient(135deg,var(--verde-bg),#F1F8E9);border:1px solid #C8E6C9;border-radius:var(--rl);padding:1.5rem;margin-bottom:14px}
+.equipe-banner h2{font-size:18px;font-weight:700;color:var(--verde);margin-bottom:.4rem}
+.equipe-banner p{font-size:13px;color:var(--cinza);margin-bottom:1.2rem}
+.equipe-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.eq-card{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:.9rem .75rem;text-align:center;box-shadow:var(--shadow);transition:all .2s}
+.eq-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.eq-avatar{width:52px;height:52px;border-radius:50%;margin:0 auto .6rem;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff}
+.eq-avatar.av1{background:linear-gradient(135deg,#1565C0,#42A5F5)}
+.eq-avatar.av2{background:linear-gradient(135deg,#C2185B,#F06292)}
+.eq-avatar.av3{background:linear-gradient(135deg,#2E7D32,#66BB6A)}
+.eq-avatar.av4{background:linear-gradient(135deg,#E65100,#FFA726)}
+.eq-avatar.av5{background:linear-gradient(135deg,#6A1B9A,#AB47BC)}
+.eq-nome{font-size:12px;font-weight:700;color:var(--txt);margin-bottom:2px}
+.eq-cargo{font-size:11px;color:var(--txt3);font-family:var(--mono)}
+.eq-prof{background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:var(--r);padding:.9rem 1.25rem;display:flex;align-items:center;gap:14px;margin-bottom:10px;color:#fff}
+.eq-prof-ava{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex-shrink:0}
+.eq-prof-info{}
+.eq-prof-label{font-size:11px;opacity:.7;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.eq-prof-nome{font-size:18px;font-weight:700;margin-top:2px}
+.eq-prof-sub{font-size:12px;opacity:.8;margin-top:2px}
+
+/* ── JOGO ───────────────────────────── */
+.jogo-wrap{background:linear-gradient(135deg,#1B5E20,#2E7D32,#388E3C);border-radius:var(--rl);padding:1.5rem;color:#fff;position:relative;overflow:hidden}
+.jogo-wrap::before{content:'🌊';font-size:120px;position:absolute;right:-20px;bottom:-20px;opacity:.08}
+.jogo-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.jogo-titulo{font-size:20px;font-weight:700;margin-bottom:.3rem}
+.jogo-desc{font-size:13px;opacity:.85;max-width:420px;line-height:1.6}
+.jogo-stats{display:flex;gap:1.5rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.jstat{text-align:center}
+.jstat-val{font-family:var(--mono);font-size:28px;font-weight:700}
+.jstat-lbl{font-size:11px;opacity:.7;margin-top:1px}
+.jogo-arena{background:rgba(0,0,0,.25);border-radius:var(--r);height:220px;position:relative;overflow:hidden;margin-bottom:1rem;cursor:crosshair;border:2px solid rgba(255,255,255,.15)}
+.jogo-arena-bg{position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,rgba(21,101,192,.5));pointer-events:none}
+.muda{position:absolute;font-size:28px;cursor:pointer;transition:transform .1s;user-select:none;animation:mudasurge .3s ease-out}
+.muda:hover{transform:scale(1.2)}
+@keyframes mudasurge{from{opacity:0;transform:scale(0.3)}to{opacity:1;transform:scale(1)}}
+.pontos-float{position:absolute;font-weight:700;font-size:16px;color:#69F0AE;pointer-events:none;animation:floatup 1s forwards}
+@keyframes floatup{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+.jogo-inicio{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:.75rem;text-align:center}
+.jogo-inicio h3{font-size:18px;font-weight:700}
+.jogo-inicio p{font-size:13px;opacity:.8}
+.jname-input{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 14px;color:#fff;font-size:14px;font-family:var(--sans);outline:none;width:220px;text-align:center}
+.jname-input::placeholder{opacity:.6;color:#fff}
+.jname-input:focus{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.6)}
+.btn-iniciar{background:#69F0AE;color:#1B5E20;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-iniciar:hover{background:#A5D6A7;transform:scale(1.05)}
+.jogo-fim{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:.6rem;text-align:center}
+.jogo-fim h3{font-size:18px;font-weight:700}
+.jogo-fim .pts-final{font-family:var(--mono);font-size:36px;font-weight:700;color:#69F0AE}
+.btn-jogar-de-novo{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;margin-top:.3rem}
+.btn-jogar-de-novo:hover{background:rgba(255,255,255,.3)}
+.jogo-ranking{background:rgba(0,0,0,.2);border-radius:var(--r);padding:1rem}
+.jr-title{font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;opacity:.7;margin-bottom:.75rem}
+.jr-list{display:flex;flex-direction:column;gap:5px}
+.jr-item{display:flex;align-items:center;gap:9px;padding:6px 10px;background:rgba(255,255,255,.08);border-radius:7px;transition:background .15s}
+.jr-item.destaque{background:rgba(105,240,174,.2);border:1px solid rgba(105,240,174,.3)}
+.jr-pos{font-family:var(--mono);font-size:13px;font-weight:700;width:22px;text-align:center;opacity:.8}
+.jr-nome{font-size:13px;font-weight:600;flex:1}
+.jr-pts{font-family:var(--mono);font-size:13px;font-weight:700;color:#69F0AE}
+.cronometro{font-family:var(--mono);font-size:28px;font-weight:700;padding:4px 18px;background:rgba(0,0,0,.3);border-radius:99px;border:2px solid rgba(255,255,255,.2)}
+.cronometro.urgente{color:#FF5252;border-color:rgba(255,82,82,.5);animation:pisca .5s infinite}
+@keyframes pisca{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:900px){.equipe-cards{grid-template-columns:repeat(3,1fr)}.jogo-stats{gap:1rem}}
+@media(max-width:600px){.equipe-cards{grid-template-columns:repeat(2,1fr)}}
+
+/* ── FOOTER ─────────────────────────── */
+footer{background:var(--card);border-top:1px solid var(--borda);padding:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.ft-copy{font-size:12px;color:var(--txt3);font-family:var(--mono)}
+.ft-links{display:flex;gap:16px}
+.ft-links a{font-size:12px;color:var(--txt2);transition:color .15s}
+.ft-links a:hover{color:var(--azul)}
+.ft-tag{font-size:11px;background:var(--verde-bg);color:var(--verde);padding:3px 9px;border-radius:99px;font-family:var(--mono);font-weight:600}
+
+/* ── RESPONSIVE ─────────────────────── */
+@media(max-width:900px){
+  .metricas{grid-template-columns:repeat(3,1fr)}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .sobre-grid{grid-template-columns:1fr 1fr}
+  .rio-fatos{grid-template-columns:1fr 1fr}
+  .nav-menu{display:none}
+}
+@media(max-width:600px){
+  .hero h1{font-size:22px} .metricas{grid-template-columns:1fr 1fr}
+  .sobre-grid{grid-template-columns:1fr} .rio-fatos{grid-template-columns:1fr}
+  .topbar{display:none} nav{padding:.7rem 1rem}
+  .sec{padding:1rem} .alerta-zona{padding:.75rem 1rem 0}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-l">
+    <span>🌊 Rio São Francisco — Projeto de Monitoramento Ambiental</span>
+    <span class="topbar-sep">|</span>
+    <span>Ibotirama, Bahia</span>
+  </div>
+  <div class="topbar-live">
+    <div class="live-dot"></div>
+    <span id="topbarHora">--:--</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    <div>
+      <div class="nav-name">Monitor Ambiental</div>
+      <div class="nav-sub">ESP32 · HC-SR04 · Rio São Francisco</div>
+    </div>
+  </div>
+  <div class="nav-menu">
+    <a class="nav-item on" href="#painel">Painel</a>
+    <a class="nav-item" href="#mapa-sec">Mapa</a>
+    <a class="nav-item" href="#rio-sec">O Rio</a>
+    <a class="nav-item" href="#problemas-sec">Poluição</a>
+    <a class="nav-item" href="#projeto-sec">Projeto</a>
+    <a class="nav-item" href="#equipe-sec">Equipe</a>
+    <a class="nav-item" href="#jogo-sec">🎮 Jogo</a>
+    <a class="nav-item" href="#codigo-sec">Código</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-badge ok" id="statusBadge">
+      <div class="live-dot"></div>
+      <span id="statusTxt">ESP32 online</span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">
+      <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Monitoramento em tempo real · Sensor Radar · Wi-Fi
+    </div>
+    <h1>Protegendo o Rio São Francisco<br><span>com tecnologia acessível</span></h1>
+    <p class="hero-desc">Sensores ESP32 com radar HC-SR04 detectam automaticamente a presença de lixo nas margens e no leito do Rio São Francisco, enviando alertas em tempo real para equipes de limpeza.</p>
+    <div class="hero-kpis">
+      <div><div class="hero-kpi-val" id="hkDet">0</div><div class="hero-kpi-lbl">Detecções hoje</div></div>
+      <div><div class="hero-kpi-val">2.863 km</div><div class="hero-kpi-lbl">Extensão do rio</div></div>
+      <div><div class="hero-kpi-val" id="hkTaxa">0%</div><div class="hero-kpi-lbl">Taxa de ocupação</div></div>
+      <div><div class="hero-kpi-val" id="hkOnline">1</div><div class="hero-kpi-lbl">Sensor ativo</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ALERTA -->
+<div class="alerta-zona">
+  <div class="alerta" id="alertaBox" style="display:none">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span class="alerta-msg" id="alertaMsg">Lixo detectado!</span>
+    <span class="alerta-hora" id="alertaHora">agora</span>
+  </div>
+</div>
+
+<!-- PAINEL MÉTRICAS -->
+<div class="sec" id="painel">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Painel de monitoramento
+    </div>
+    <span class="sec-action" id="ultimaAtual">Atualizando...</span>
+  </div>
+  <div class="metricas">
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Status</span><div class="met-ico vm"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div></div>
+      <div class="met-val er" id="mStatus">LIXO</div>
+      <div class="met-sub">Sensor A1</div>
+    </div>
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Distância</span><div class="met-ico az"><svg viewBox="0 0 24 24"><line x1="2" y1="12" x2="22" y2="12"/><polyline points="15 5 22 12 15 19"/></svg></div></div>
+      <div class="met-val az" id="mDist">42 cm</div>
+      <div class="met-sub">Leitura atual</div>
+    </div>
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Detecções hoje</span><div class="met-ico vm"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg></div></div>
+      <div class="met-val er" id="mDet">7</div>
+      <div class="met-sub">Desde meia-noite</div>
+    </div>
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Taxa ocupação</span><div class="met-ico vd"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
+      <div class="met-val" id="mTaxa">43%</div>
+      <div class="met-sub">Leituras com lixo</div>
+    </div>
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Última leitura</span><div class="met-ico az"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+      <div class="met-val az" id="mHora">--:--</div>
+      <div class="met-sub">Atualiza em 5s</div>
+    </div>
+    <div class="met">
+      <div class="met-hdr"><span class="met-lbl">Sensores ativos</span><div class="met-ico vd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11"/></svg></div></div>
+      <div class="met-val ok">1 / 1</div>
+      <div class="met-sub">Sensor A1 — online</div>
+    </div>
+  </div>
+</div>
+
+<!-- RADAR + MAPA -->
+<div class="sec" id="mapa-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11"/></svg>
+      Sensor e mapa em tempo real
+    </div>
+  </div>
+  <div class="grid2">
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/></svg> Radar — Sensor A1</div>
+        <span class="chip vm" id="radarChip">● Objeto detectado</span>
+      </div>
+      <div class="radar-area">
+        <canvas id="radarCanvas" width="175" height="175" role="img" aria-label="Visualização do radar mostrando distância do objeto detectado"></canvas>
+        <button class="status-btn lixo" id="statusBtn">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg>
+          Lixo detectado
+        </button>
+        <div class="radar-specs">
+          <div class="spec"><div class="spec-lbl">Distância</div><div class="spec-val" id="specDist">42 cm</div></div>
+          <div class="spec"><div class="spec-lbl">Limiar</div><div class="spec-val">100 cm</div></div>
+          <div class="spec"><div class="spec-lbl">Sensor ID</div><div class="spec-val">A1</div></div>
+          <div class="spec"><div class="spec-lbl">Intervalo</div><div class="spec-val">5 seg</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> Mapa em tempo real</div>
+        <span class="chip az">OpenStreetMap</span>
+      </div>
+      <div id="mapa"></div>
+      <div class="mapa-legenda">
+        <div class="leg"><div class="leg-d" style="background:#C62828"></div> Lixo detectado</div>
+        <div class="leg"><div class="leg-d" style="background:#2E7D32"></div> Área livre</div>
+        <div class="leg"><div class="leg-d" style="background:#1565C0"></div> Rio São Francisco</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- GRÁFICOS + HISTÓRICO -->
+<div class="sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Gráficos e histórico
+    </div>
+  </div>
+  <div class="grid2">
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Detecções por hora</div>
+      </div>
+      <div class="cw" style="height:190px"><canvas id="chHora" role="img" aria-label="Gráfico de detecções por hora do dia"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Histórico de eventos</div>
+        <span class="chip vd" id="chipTotal">7 hoje</span>
+      </div>
+      <div class="tl" id="tl">
+        <div class="tl-ev"><div class="tl-ico lixo"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg></div><div><div class="tl-txt">Lixo detectado — A1</div><div class="tl-hora">hoje 14:32</div></div><div class="tl-dist">42 cm</div></div>
+        <div class="tl-ev"><div class="tl-ico livre"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="tl-txt">Área livre — A1</div><div class="tl-hora">hoje 13:15</div></div><div class="tl-dist">182 cm</div></div>
+        <div class="tl-ev"><div class="tl-ico lixo"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg></div><div><div class="tl-txt">Lixo detectado — A1</div><div class="tl-hora">hoje 11:48</div></div><div class="tl-dist">67 cm</div></div>
+        <div class="tl-ev"><div class="tl-ico livre"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="tl-txt">Área livre — A1</div><div class="tl-hora">hoje 10:20</div></div><div class="tl-dist">190 cm</div></div>
+        <div class="tl-ev"><div class="tl-ico lixo"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg></div><div><div class="tl-txt">Lixo detectado — A1</div><div class="tl-hora">hoje 09:05</div></div><div class="tl-dist">55 cm</div></div>
+      </div>
+    </div>
+
+    <div class="card full">
+      <div class="card-hdr">
+        <div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Distância medida — últimas 30 leituras</div>
+        <span class="chip az" id="chipAovivo">● Ao vivo</span>
+      </div>
+      <div class="cw" style="height:140px"><canvas id="chDist" role="img" aria-label="Distância medida pelo sensor nas últimas leituras"></canvas></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- O RIO SÃO FRANCISCO -->
+<div class="sec" id="rio-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+      O Rio São Francisco
+    </div>
+  </div>
+  <div class="rio-banner">
+    <div class="rio-texto" style="flex:1;min-width:260px">
+      <h2>🌊 O Velho Chico</h2>
+      <p>O Rio São Francisco é um dos rios mais importantes do Brasil e da América do Sul. Chamado carinhosamente de <strong>Velho Chico</strong>, é a principal fonte de água potável para milhões de pessoas no semiárido nordestino, onde a escassez hídrica é crítica.</p>
+      <p style="margin-top:.6rem">Nasce na <strong>Serra da Canastra</strong>, em Minas Gerais, a 1.550 m de altitude, e percorre 2.863 km até desaguar no Oceano Atlântico, na divisa entre Alagoas e Sergipe. É considerado o "rio da unidade nacional" por ser o único grande rio inteiramente brasileiro que liga o Centro-Sul ao Nordeste.</p>
+      <p style="margin-top:.6rem">Apesar de sua importância histórica e ecológica, o rio sofre com décadas de degradação ambiental: desmatamento das matas ciliares, lançamento de esgoto sem tratamento, mineração irregular e descarte de lixo nas margens ameaçam sua sobrevivência.</p>
+    </div>
+    <div class="rio-fatos">
+      <div class="fato"><div class="fato-lbl">📏 Extensão</div><div class="fato-val">2.863 km</div><div class="fato-desc">4º maior rio do Brasil</div></div>
+      <div class="fato"><div class="fato-lbl">👥 Populações</div><div class="fato-val">15 mi</div><div class="fato-desc">Dependem diretamente</div></div>
+      <div class="fato"><div class="fato-lbl">🗺 Estados</div><div class="fato-val">MG,BA,PE,AL,SE</div><div class="fato-desc">5 estados brasileiros</div></div>
+      <div class="fato"><div class="fato-lbl">⛰ Nascente</div><div class="fato-val">Serra Canastra</div><div class="fato-desc">Altitude de 1.550 m</div></div>
+      <div class="fato"><div class="fato-lbl">⚡ Energia</div><div class="fato-val">~10.000 MW</div><div class="fato-desc">Potencial hidrelétrico</div></div>
+      <div class="fato"><div class="fato-lbl">🐟 Biodiversidade</div><div class="fato-val">+150 espécies</div><div class="fato-desc">Peixes endêmicos</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEMAS DE POLUIÇÃO -->
+<div class="sec" id="problemas-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Problemas de poluição
+    </div>
+  </div>
+  <div class="grid2">
+
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg> Principais ameaças ao rio</div></div>
+      <div class="prob-lista">
+        <div class="prob grave">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg>
+          <div><div class="prob-titulo">Descarte irregular de lixo</div><div class="prob-desc">Resíduos sólidos domésticos, plásticos e entulhos são descartados diretamente nas margens do rio por comunidades sem coleta de lixo adequada.</div></div>
+        </div>
+        <div class="prob grave">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div><div class="prob-titulo">Esgoto sem tratamento</div><div class="prob-desc">Mais de 80% das cidades ribeirinhas lançam esgoto doméstico e industrial diretamente no rio, contaminando a água com patógenos e metais pesados.</div></div>
+        </div>
+        <div class="prob medio">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div><div class="prob-titulo">Agrotóxicos e fertilizantes</div><div class="prob-desc">O uso intensivo na agricultura do entorno contamina os afluentes com nitratos, fosfatos e pesticidas que chegam ao rio principal.</div></div>
+        </div>
+        <div class="prob medio">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <div><div class="prob-titulo">Desmatamento das margens</div><div class="prob-desc">A retirada da mata ciliar provoca erosão, assoreamento do leito e aumenta drasticamente a turbidez da água, afetando a vida aquática.</div></div>
+        </div>
+        <div class="prob leve">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          <div><div class="prob-titulo">Ações de recuperação em curso</div><div class="prob-desc">Programas de reflorestamento, tratamento de esgoto e fiscalização ambiental estão sendo ampliados ao longo do rio — mas ainda são insuficientes.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Nível de poluição por trecho</div></div>
+      <div class="cw" style="height:210px"><canvas id="chPoluicao" role="img" aria-label="Índice estimado de poluição por trecho do Rio São Francisco. Alto SF 20%, Médio SF 55%, Sub-médio SF 75%, Baixo SF 45%."></canvas></div>
+      <div style="margin-top:12px">
+        <div class="card-hdr" style="margin-bottom:.5rem"><div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Tendência histórica</div><span class="chip vm">⚠ Crescente</span></div>
+        <div class="cw" style="height:100px"><canvas id="chTend" role="img" aria-label="Tendência de crescimento da poluição de 2000 a 2024. De 30% a 76%."></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SOBRE O PROJETO -->
+<div class="sec" id="projeto-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Sobre o projeto
+    </div>
+  </div>
+  <div class="card full">
+    <div class="sobre-grid">
+      <div class="sobre-item">
+        <div class="s-ico az"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9l2 2-2 2"/><line x1="13" y1="13" x2="15" y2="13"/></svg></div>
+        <div><div class="s-titulo">Microcontrolador ESP32</div><div class="s-desc">Chip com Wi-Fi integrado que coleta os dados do sensor e envia via HTTP ao servidor a cada 5 segundos. Alimentado por bateria ou USB.</div></div>
+      </div>
+      <div class="sobre-item">
+        <div class="s-ico vd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11"/></svg></div>
+        <div><div class="s-titulo">Sensor Ultrassônico HC-SR04</div><div class="s-desc">Mede distância com precisão de 3 mm. Objetos detectados a menos de 100 cm são classificados como presença de lixo na área monitorada.</div></div>
+      </div>
+      <div class="sobre-item">
+        <div class="s-ico lr"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        <div><div class="s-titulo">Alertas em tempo real</div><div class="s-desc">Quando lixo é detectado, o painel exibe alerta imediato com horário e distância. Futuramente integrado com SMS e e-mail para equipes de campo.</div></div>
+      </div>
+      <div class="sobre-item">
+        <div class="s-ico az"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div><div class="s-titulo">Mapeamento georreferenciado</div><div class="s-desc">Cada sensor tem coordenadas GPS. O mapa interativo mostra em tempo real os pontos com lixo (vermelho) ou livres (verde) ao longo do rio.</div></div>
+      </div>
+      <div class="sobre-item">
+        <div class="s-ico vd"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div><div class="s-titulo">Histórico e análise de dados</div><div class="s-desc">Todas as leituras são armazenadas com horário e distância. Gráficos mostram padrões de descarte por hora, dia e semana para planejamento de ações.</div></div>
+      </div>
+      <div class="sobre-item">
+        <div class="s-ico vd"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div><div class="s-titulo">Impacto ambiental esperado</div><div class="s-desc">Reduzir o acúmulo de resíduos nas margens do Rio São Francisco, proteger a biodiversidade aquática e garantir a qualidade da água para comunidades ribeirinhas.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CÓDIGO -->
+<div class="sec" id="codigo-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Código fonte
+    </div>
+  </div>
+  <div class="card full">
+    <div class="card-hdr">
+      <div class="card-title"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9l2 2-2 2"/></svg> Código completo do ESP32 + servidor</div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="tab('ino',this)">Arduino .ino</button>
+      <button class="tab" onclick="tab('api',this)">API Python</button>
+      <button class="tab" onclick="tab('sql',this)">Banco SQL</button>
+    </div>
+    <pre id="cIno"><span class="cm">// ══════════════════════════════════════════════════
+//  Monitor de Lixo — Rio São Francisco
+//  ESP32 + Sensor Ultrassônico HC-SR04
+//  Envia dados via Wi-Fi para o servidor
+// ══════════════════════════════════════════════════</span>
+
+<span class="kw">#include</span> <span class="str">&lt;WiFi.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;HTTPClient.h&gt;</span>
+
+<span class="cm">// ── Configurações Wi-Fi ──────────────────────────</span>
+<span class="kw">const char*</span> SSID      = <span class="str">"SUA_REDE_WIFI"</span>;
+<span class="kw">const char*</span> PASSWORD  = <span class="str">"SUA_SENHA"</span>;
+<span class="kw">const char*</span> SERVER    = <span class="str">"http://seusite.com/api/sensor"</span>;
+
+<span class="cm">// ── Pinos do HC-SR04 ─────────────────────────────</span>
+<span class="kw">#define</span> TRIG_PIN    5    <span class="cm">// GPIO 5</span>
+<span class="kw">#define</span> ECHO_PIN   18    <span class="cm">// GPIO 18</span>
+<span class="kw">#define</span> LED_PIN     2    <span class="cm">// LED interno ESP32</span>
+
+<span class="cm">// ── Configurações do sensor ──────────────────────</span>
+<span class="kw">#define</span> LIMIAR_CM  100.0  <span class="cm">// abaixo = lixo detectado</span>
+<span class="kw">#define</span> SENSOR_ID  <span class="str">"A1"</span>
+<span class="kw">#define</span> LATITUDE   -10.5014   <span class="cm">// coordenadas do ponto</span>
+<span class="kw">#define</span> LONGITUDE  -36.9614
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  Serial.begin(115200);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+
+  Serial.println(<span class="str">"Conectando ao Wi-Fi..."</span>);
+  WiFi.begin(SSID, PASSWORD);
+  <span class="kw">while</span> (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(<span class="str">"."</span>);
+  }
+  Serial.println(<span class="str">"\nWi-Fi conectado!"</span>);
+  Serial.print(<span class="str">"IP: "</span>); Serial.println(WiFi.localIP());
+  digitalWrite(LED_PIN, HIGH); <span class="cm">// LED aceso = online</span>
+}
+
+<span class="kw">float</span> <span class="fn">medir</span>() {
+  digitalWrite(TRIG_PIN, LOW);  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  <span class="kw">long</span> dur = pulseIn(ECHO_PIN, HIGH, 30000);
+  <span class="kw">return</span> dur == 0 ? 999.0 : dur * 0.034 / 2.0;
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">float</span> dist    = medir();
+  <span class="kw">bool</span>  temLixo = dist &lt; LIMIAR_CM;
+
+  <span class="cm">// Pisca 3x se tiver lixo</span>
+  <span class="kw">if</span> (temLixo) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; 3; i++) {
+      digitalWrite(LED_PIN, LOW);  delay(150);
+      digitalWrite(LED_PIN, HIGH); delay(150);
+    }
+  }
+
+  <span class="kw">if</span> (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(SERVER);
+    http.addHeader(<span class="str">"Content-Type"</span>, <span class="str">"application/json"</span>);
+
+    String body = <span class="str">"{"</span>
+      <span class="str">"\"sensor\":\""</span>   + String(SENSOR_ID)    + <span class="str">"\","</span>
+      <span class="str">"\"distancia\":"</span>  + String(dist, 1)       + <span class="str">","</span>
+      <span class="str">"\"lixo\":"</span>       + (temLixo ? <span class="str">"true"</span> : <span class="str">"false"</span>) + <span class="str">","</span>
+      <span class="str">"\"latitude\":"</span>   + String(LATITUDE,  4)  + <span class="str">","</span>
+      <span class="str">"\"longitude\":"</span>  + String(LONGITUDE, 4)  +
+    <span class="str">"}"</span>;
+
+    <span class="kw">int</span> code = http.POST(body);
+    Serial.printf(<span class="str">"%s %.1f cm → HTTP %d\n"</span>,
+      temLixo ? <span class="str">"[LIXO]"</span> : <span class="str">"[OK]  "</span>, dist, code);
+    http.end();
+  }
+
+  delay(5000); <span class="cm">// envia a cada 5 segundos</span>
+}</pre>
+    <pre id="cApi" style="display:none"><span class="cm"># ══════════════════════════════════════════════
+#  API Backend — FastAPI + SQLite
+#  Recebe dados do ESP32 e serve o frontend
+# ══════════════════════════════════════════════</span>
+
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+<span class="kw">from</span> fastapi.responses <span class="kw">import</span> FileResponse
+<span class="kw">from</span> fastapi.staticfiles <span class="kw">import</span> StaticFiles
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+<span class="kw">import</span> sqlite3
+
+app = FastAPI(title=<span class="str">"Monitor Rio São Francisco"</span>)
+app.mount(<span class="str">"/static"</span>, StaticFiles(directory=<span class="str">"."</span>), name=<span class="str">"static"</span>)
+
+<span class="kw">class</span> Leitura(BaseModel):
+    sensor: str; distancia: float; lixo: bool
+    latitude:  float = -10.5014
+    longitude: float = -36.9614
+
+<span class="kw">def</span> <span class="fn">db</span>():
+    c = sqlite3.connect(<span class="str">"monitor.db"</span>)
+    c.row_factory = sqlite3.Row
+    <span class="kw">return</span> c
+
+<span class="cm"># Cria tabela ao iniciar</span>
+<span class="kw">with</span> db() <span class="kw">as</span> c:
+    c.execute(<span class="str">"""
+        CREATE TABLE IF NOT EXISTS leituras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sensor_id TEXT, distancia REAL, lixo INTEGER,
+            latitude REAL, longitude REAL, criado_em TEXT)
+    """</span>)
+
+@app.post(<span class="str">"/api/sensor"</span>)
+<span class="kw">async def</span> <span class="fn">receber</span>(d: Leitura):
+    <span class="kw">with</span> db() <span class="kw">as</span> c:
+        c.execute(<span class="str">"INSERT INTO leituras VALUES(NULL,?,?,?,?,?,?)"</span>,
+            (d.sensor, d.distancia, int(d.lixo),
+             d.latitude, d.longitude, datetime.now().isoformat()))
+    <span class="kw">return</span> {<span class="str">"ok"</span>: True}
+
+@app.get(<span class="str">"/api/status"</span>)
+<span class="kw">async def</span> <span class="fn">status</span>():
+    <span class="kw">with</span> db() <span class="kw">as</span> c:
+        rows = c.execute(<span class="str">"""SELECT * FROM leituras WHERE id IN
+            (SELECT MAX(id) FROM leituras GROUP BY sensor_id)"""</span>).fetchall()
+    <span class="kw">return</span> [dict(r) <span class="kw">for</span> r <span class="kw">in</span> rows]
+
+@app.get(<span class="str">"/api/historico"</span>)
+<span class="kw">async def</span> <span class="fn">historico</span>(limite: int = 50):
+    <span class="kw">with</span> db() <span class="kw">as</span> c:
+        rows = c.execute(
+            <span class="str">"SELECT * FROM leituras ORDER BY id DESC LIMIT ?"</span>,
+            (limite,)).fetchall()
+    <span class="kw">return</span> [dict(r) <span class="kw">for</span> r <span class="kw">in</span> rows]
+
+@app.get(<span class="str">"/api/estatisticas"</span>)
+<span class="kw">async def</span> <span class="fn">estatisticas</span>():
+    <span class="kw">with</span> db() <span class="kw">as</span> c:
+        total     = c.execute(<span class="str">"SELECT COUNT(*) FROM leituras"</span>).fetchone()[0]
+        com_lixo  = c.execute(<span class="str">"SELECT COUNT(*) FROM leituras WHERE lixo=1"</span>).fetchone()[0]
+        por_hora  = c.execute(<span class="str">"""
+            SELECT strftime('%H', criado_em) hora,
+                   COUNT(*) total, SUM(lixo) com_lixo
+            FROM leituras WHERE date(criado_em)=date('now')
+            GROUP BY hora ORDER BY hora"""</span>).fetchall()
+    taxa = round(com_lixo/total*100, 1) <span class="kw">if</span> total <span class="kw">else</span> 0
+    <span class="kw">return</span> {"total": total, "total_lixo": com_lixo,
+            "taxa_ocupacao": taxa, "por_hora": [dict(r) <span class="kw">for</span> r <span class="kw">in</span> por_hora]}
+
+@app.get(<span class="str">"/"</span>)
+<span class="kw">async def</span> <span class="fn">index</span>(): <span class="kw">return</span> FileResponse(<span class="str">"index.html"</span>)
+
+<span class="cm"># Rodar com: py -m uvicorn main:app --host 0.0.0.0 --port 8000</span></pre>
+    <pre id="cSql" style="display:none"><span class="cm">-- ═══════════════════════════════════════════════
+-- Banco de dados SQLite — Monitor Rio São Francisco
+-- Criado automaticamente pelo servidor Python
+-- ═══════════════════════════════════════════════</span>
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> leituras (
+    id         <span class="nm">INTEGER</span> <span class="kw">PRIMARY KEY AUTOINCREMENT</span>,
+    sensor_id  <span class="nm">TEXT</span>    <span class="kw">NOT NULL</span>,          <span class="cm">-- ex: "A1"</span>
+    distancia  <span class="nm">REAL</span>    <span class="kw">NOT NULL</span>,          <span class="cm">-- em cm</span>
+    lixo       <span class="nm">INTEGER</span> <span class="kw">NOT NULL</span>,          <span class="cm">-- 0=livre, 1=lixo</span>
+    latitude   <span class="nm">REAL</span>    <span class="kw">DEFAULT</span> -10.5014, <span class="cm">-- coordenada GPS</span>
+    longitude  <span class="nm">REAL</span>    <span class="kw">DEFAULT</span> -36.9614,
+    criado_em  <span class="nm">TEXT</span>    <span class="kw">NOT NULL</span>           <span class="cm">-- ISO 8601</span>
+);
+
+<span class="cm">-- Status atual de cada sensor (última leitura)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> leituras
+<span class="kw">WHERE</span> id <span class="kw">IN</span> (
+    <span class="kw">SELECT MAX</span>(id) <span class="kw">FROM</span> leituras <span class="kw">GROUP BY</span> sensor_id
+);
+
+<span class="cm">-- Detecções de hoje agrupadas por hora</span>
+<span class="kw">SELECT</span> strftime(<span class="str">'%H'</span>, criado_em) <span class="kw">AS</span> hora,
+       <span class="kw">COUNT</span>(*) <span class="kw">AS</span> total,
+       <span class="kw">SUM</span>(lixo) <span class="kw">AS</span> com_lixo
+<span class="kw">FROM</span> leituras
+<span class="kw">WHERE</span> <span class="fn">date</span>(criado_em) = <span class="fn">date</span>(<span class="str">'now'</span>)
+<span class="kw">GROUP BY</span> hora <span class="kw">ORDER BY</span> hora;
+
+<span class="cm">-- Taxa de ocupação geral (%)</span>
+<span class="kw">SELECT ROUND</span>(<span class="kw">SUM</span>(lixo) * 100.0 / <span class="kw">COUNT</span>(*), 1) <span class="kw">AS</span> taxa_pct
+<span class="kw">FROM</span> leituras;
+
+<span class="cm">-- Alertas das últimas 24 horas</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> leituras
+<span class="kw">WHERE</span> lixo = 1
+  <span class="kw">AND</span> criado_em >= <span class="fn">datetime</span>(<span class="str">'now'</span>, <span class="str">'-24 hours'</span>)
+<span class="kw">ORDER BY</span> id <span class="kw">DESC</span>;</pre>
+  </div>
+</div>
+
+<!-- EQUIPE -->
+<div class="sec" id="equipe-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Nossa Equipe
+    </div>
+  </div>
+  <div class="card full">
+    <div class="equipe-banner">
+      <h2>👨‍🏫 Professor e Alunos</h2>
+      <p>Conheça os responsáveis pelo projeto de monitoramento ambiental do Rio São Francisco.</p>
+
+      <!-- Professor -->
+      <div class="eq-prof">
+        <div class="eq-prof-ava">A</div>
+        <div class="eq-prof-info">
+          <div class="eq-prof-label">🎓 Professor orientador</div>
+          <div class="eq-prof-nome">Aldeny</div>
+          <div class="eq-prof-sub">Orientador do projeto · Monitoramento Ambiental Rio São Francisco</div>
+        </div>
+      </div>
+
+      <!-- Alunos -->
+      <div class="equipe-cards">
+        <div class="eq-card">
+          <div class="eq-avatar av1">A</div>
+          <div class="eq-nome">Ariel de Oliveira</div>
+          <div class="eq-cargo">👨‍💻 Aluno</div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-avatar av2">S</div>
+          <div class="eq-nome">Sofia Ferreira</div>
+          <div class="eq-cargo">👩‍💻 Aluna</div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-avatar av3">M</div>
+          <div class="eq-nome">Murilo dos Santos</div>
+          <div class="eq-cargo">👨‍💻 Aluno</div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-avatar av4">Y</div>
+          <div class="eq-nome">Yasmin Evellin</div>
+          <div class="eq-cargo">👩‍💻 Aluna</div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-avatar av5">A</div>
+          <div class="eq-nome">Arthur Almeida</div>
+          <div class="eq-cargo">👨‍💻 Aluno</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOGO: MISSÃO REFLORESTAR -->
+<div class="sec" id="jogo-sec">
+  <div class="sec-hdr">
+    <div class="sec-title">
+      <svg viewBox="0 0 24 24"><path d="M12 2a9 9 0 00-9 9c0 4.17 2.84 7.67 6.69 8.69L12 22l2.31-2.31C18.16 18.67 21 15.17 21 11a9 9 0 00-9-9z"/></svg>
+      🎮 Missão Reflorestar São Francisco
+    </div>
+  </div>
+  <div class="grid2">
+
+    <!-- Arena do jogo -->
+    <div class="jogo-wrap">
+      <div class="jogo-hdr">
+        <div>
+          <div class="jogo-titulo">🌱 Missão Reflorestar</div>
+          <div class="jogo-desc">Plante mudas nas margens do Rio São Francisco! Clique nas mudas que aparecem antes que o tempo acabe.</div>
+        </div>
+        <div class="cronometro" id="jogoCrono">60</div>
+      </div>
+
+      <div class="jogo-stats">
+        <div class="jstat">
+          <div class="jstat-val" id="jogoPontos">0</div>
+          <div class="jstat-lbl">⭐ Pontos</div>
+        </div>
+        <div class="jstat">
+          <div class="jstat-val" id="jogoMudas">0</div>
+          <div class="jstat-lbl">🌱 Mudas</div>
+        </div>
+      </div>
+
+      <div class="jogo-arena" id="jogoArena">
+        <div class="jogo-arena-bg"></div>
+        <!-- Tela inicial -->
+        <div class="jogo-inicio" id="jogoInicio">
+          <h3>🌊 Missão Reflorestar São Francisco</h3>
+          <p>Plante o maior número de mudas em 60 segundos!</p>
+          <input class="jname-input" id="jogoNome" type="text" placeholder="Seu nome..." maxlength="20"/>
+          <button class="btn-iniciar" onclick="iniciarJogo()">🌱 Iniciar Jogo</button>
+        </div>
+        <!-- Tela de fim -->
+        <div class="jogo-fim" id="jogoFim" style="display:none">
+          <h3>🏆 Tempo esgotado!</h3>
+          <div class="pts-final" id="jogoPtsFinal">0</div>
+          <div style="opacity:.8;font-size:13px" id="jogoMudasFinal"></div>
+          <button class="btn-jogar-de-novo" onclick="resetJogo()">🔄 Jogar de novo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ranking -->
+    <div class="jogo-wrap">
+      <div class="jogo-titulo" style="margin-bottom:.5rem">🏆 Guardiões do São Francisco</div>
+      <div style="font-size:13px;opacity:.8;margin-bottom:1.2rem">Os melhores plantadores de mudas</div>
+      <div class="jogo-ranking">
+        <div class="jr-title">📋 Ranking geral</div>
+        <div class="jr-list" id="jogoRanking">
+          <div class="jr-item"><span class="jr-pos">🥇</span><span class="jr-nome">Ariel</span><span class="jr-pts">350 pts</span></div>
+          <div class="jr-item"><span class="jr-pos">🥈</span><span class="jr-nome">Lucas</span><span class="jr-pts">300 pts</span></div>
+          <div class="jr-item"><span class="jr-pos">🥉</span><span class="jr-nome">Maria</span><span class="jr-pts">280 pts</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.2rem;background:rgba(0,0,0,.2);border-radius:var(--r);padding:1rem">
+        <div class="jr-title">📖 Como jogar</div>
+        <div style="font-size:12px;opacity:.85;line-height:1.8">
+          🌱 Mudas aparecem na arena aleatoriamente<br>
+          👆 Clique nas mudas para plantá-las<br>
+          ⭐ Cada muda vale <strong>+10 pontos</strong><br>
+          ⏱️ Você tem <strong>60 segundos</strong> no total<br>
+          🏆 Sua pontuação entra no ranking!
+        </div>
+      </div>
+
+      <div style="margin-top:1.2rem;background:rgba(0,0,0,.15);border-radius:var(--r);padding:1rem;font-size:12px;opacity:.8;line-height:1.7">
+        <strong>🌳 Por que reflorestar?</strong><br>
+        As matas ciliares protegem as margens do rio contra erosão e assoreamento. Cada árvore plantada ajuda a preservar o Velho Chico para as futuras gerações.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-copy">© 2025 Monitor Ambiental · Rio São Francisco · Ibotirama, BA</div>
+  <div class="ft-links">
+    <a href="#painel">Painel</a>
+    <a href="#rio-sec">O Rio</a>
+    <a href="#projeto-sec">Projeto</a>
+    <a href="#codigo-sec">Código</a>
+  </div>
+  <span class="ft-tag">🌊 Pelo Rio São Francisco</span>
+</footer>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const API = ''; // ex: 'http://192.168.1.21:8000' ou seu domínio Railway
+
+// ── RELÓGIO TOPBAR ────────────────────────────────────────
+setInterval(()=>{
+  document.getElementById('topbarHora').textContent=
+    new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+},1000);
+
+// ── MAPA LEAFLET ──────────────────────────────────────────
+const mapa=L.map('mapa').setView([-12.5,-40.5],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapa);
+
+// Traçado aproximado do Rio São Francisco
+const rio=[[-20.35,-46.42],[-18.5,-45.0],[-16.5,-44.1],[-14.0,-44.5],[-12.5,-43.8],
+           [-10.9,-40.5],[-10.5,-37.5],[-10.3,-36.3]];
+L.polyline(rio,{color:'#1565C0',weight:4,opacity:0.55,dashArray:'8,5'}).addTo(mapa).bindPopup('<b>Rio São Francisco</b><br>2.863 km');
+
+// Cidades importantes ao longo do rio
+const cidades=[
+  {n:'Pirapora, MG',ll:[-17.35,-44.94]},{n:'Januária, MG',ll:[-15.49,-44.36]},
+  {n:'Bom Jesus da Lapa, BA',ll:[-13.25,-43.42]},{n:'Juazeiro, BA',ll:[-9.41,-40.50]},
+  {n:'Paulo Afonso, BA',ll:[-9.40,-38.21]},{n:'Penedo, AL',ll:[-10.29,-36.58]}
+];
+cidades.forEach(c=>{
+  L.circleMarker(c.ll,{radius:5,color:'#1565C0',fillColor:'#BBDEFB',fillOpacity:.8,weight:1.5})
+   .addTo(mapa).bindPopup(`<b>${c.n}</b><br>Às margens do Rio São Francisco`);
+});
+
+function pinIco(cor){
+  return L.divIcon({className:'',
+    html:`<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)"></div>`,
+    iconAnchor:[7,7]});
+}
+const marcadores={};
+function atualizarMapa(sensores){
+  sensores.forEach(s=>{
+    const cor=s.lixo?'#C62828':'#2E7D32';
+    const popup=`<b>Sensor ${s.sensor_id}</b><br>${s.lixo?'🗑 Lixo detectado':'✅ Área livre'}<br>Distância: ${parseFloat(s.distancia).toFixed(0)} cm`;
+    const ll=[s.latitude||-10.5014,s.longitude||-36.9614];
+    if(marcadores[s.sensor_id]){marcadores[s.sensor_id].setIcon(pinIco(cor)).setPopupContent(popup);}
+    else{marcadores[s.sensor_id]=L.marker(ll,{icon:pinIco(cor)}).addTo(mapa).bindPopup(popup);}
+  });
+}
+
+// ── RADAR CANVAS ──────────────────────────────────────────
+const rc=document.getElementById('radarCanvas'),rx=rc.getContext('2d');
+let radarDist=42;
+function desenharRadar(dist,lixo){
+  const cx=87,cy=87,mr=80;
+  rx.clearRect(0,0,175,175);
+  // anéis
+  [80,60,40,20].forEach(r=>{
+    rx.beginPath();rx.arc(cx,cy,r,0,Math.PI*2);
+    rx.strokeStyle='rgba(0,0,0,0.07)';rx.lineWidth=1;rx.stroke();
+  });
+  // eixos
+  rx.strokeStyle='rgba(0,0,0,0.05)';rx.lineWidth=1;
+  rx.beginPath();rx.moveTo(cx,cy-mr);rx.lineTo(cx,cy+mr);rx.stroke();
+  rx.beginPath();rx.moveTo(cx-mr,cy);rx.lineTo(cx+mr,cy);rx.stroke();
+  // centro
+  rx.beginPath();rx.arc(cx,cy,4,0,Math.PI*2);rx.fillStyle='#1565C0';rx.fill();
+  // blip
+  const ang=(Date.now()/2200)%(Math.PI*2);
+  const r=Math.min(mr-6,(dist/200)*mr);
+  const bx=cx+r*Math.cos(ang),by=cy+r*Math.sin(ang);
+  rx.beginPath();rx.moveTo(cx,cy);rx.lineTo(bx,by);
+  rx.strokeStyle=lixo?'rgba(198,40,40,.35)':'rgba(46,125,50,.35)';rx.lineWidth=1.5;rx.stroke();
+  const alfa=0.45+0.55*Math.abs(Math.sin(Date.now()/600));
+  rx.beginPath();rx.arc(bx,by,7,0,Math.PI*2);
+  rx.fillStyle=lixo?`rgba(198,40,40,${alfa})`:`rgba(46,125,50,${alfa})`;rx.fill();
+}
+function loopRadar(){
+  const lixo=document.getElementById('mStatus').textContent==='LIXO';
+  desenharRadar(radarDist,lixo);requestAnimationFrame(loopRadar);
+}
+
+// ── GRÁFICOS ──────────────────────────────────────────────
+const horas=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+'h');
+const chHora=new Chart(document.getElementById('chHora'),{
+  type:'bar',
+  data:{labels:horas,datasets:[{label:'Detecções',data:new Array(24).fill(0),backgroundColor:new Array(24).fill('#BBDEFB'),borderRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:'#90A4AE'},grid:{color:'rgba(0,0,0,0.04)'}},
+            x:{ticks:{color:'#90A4AE',autoSkip:true,maxTicksLimit:12},grid:{display:false}}}}
+});
+const chDist=new Chart(document.getElementById('chDist'),{
+  type:'line',
+  data:{labels:[],datasets:[{label:'cm',data:[],borderColor:'#1565C0',backgroundColor:'rgba(21,101,192,0.06)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:[]}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{min:0,max:220,ticks:{color:'#90A4AE',callback:v=>v+' cm'},grid:{color:'rgba(0,0,0,0.04)'}},
+            x:{ticks:{color:'#90A4AE',maxTicksLimit:10},grid:{display:false}}}}
+});
+new Chart(document.getElementById('chPoluicao'),{
+  type:'bar',
+  data:{labels:['Alto SF (MG)','Médio SF (BA)','Sub-médio SF\n(PE/BA)','Baixo SF (AL/SE)'],
+    datasets:[{label:'Índice de poluição (%)',data:[20,55,75,45],
+    backgroundColor:['#C8E6C9','#FFE082','#FFCCBC','#FFE082'],
+    borderColor:['#2E7D32','#F57C00','#C62828','#F57C00'],borderWidth:1.5,borderRadius:5}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,max:100,ticks:{color:'#90A4AE',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.04)'}},
+            x:{ticks:{color:'#90A4AE'},grid:{display:false}}}}
+});
+new Chart(document.getElementById('chTend'),{
+  type:'line',
+  data:{labels:['2000','2005','2010','2015','2018','2020','2022','2024'],
+    datasets:[{label:'%',data:[30,38,45,52,62,68,72,76],borderColor:'#C62828',
+    backgroundColor:'rgba(198,40,40,0.06)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#C62828'}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{min:0,max:100,ticks:{color:'#90A4AE',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.04)'}},
+            x:{ticks:{color:'#90A4AE'},grid:{display:false}}}}
+});
+
+// ── TABS CÓDIGO ───────────────────────────────────────────
+function tab(id,btn){
+  ['cIno','cApi','cSql'].forEach(x=>document.getElementById(x).style.display='none');
+  document.getElementById(id==='ino'?'cIno':id==='api'?'cApi':'cSql').style.display='block';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ── ATUALIZAR UI ──────────────────────────────────────────
+function $id(i){return document.getElementById(i)}
+function atualizarUI({status,dist,det,taxa,sensores,historico,porHora}){
+  $id('mStatus').textContent=status?'LIXO':'LIVRE';
+  $id('mStatus').className='met-val '+(status?'er':'ok');
+  $id('mDist').textContent=dist+' cm';
+  $id('mDet').textContent=det;
+  $id('mTaxa').textContent=taxa+'%';
+  $id('mHora').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  $id('hkDet').textContent=det;
+  $id('hkTaxa').textContent=taxa+'%';
+  $id('specDist').textContent=dist+' cm';
+  $id('chipTotal').textContent=det+' hoje';
+
+  // alerta
+  const ab=$id('alertaBox');
+  if(status){
+    ab.style.display='flex';ab.className='alerta lixo';
+    $id('alertaMsg').textContent=`⚠ Sensor A1: lixo detectado a ${dist} cm — Rio São Francisco`;
+    $id('alertaHora').textContent='agora';
+  }else{
+    ab.style.display='flex';ab.className='alerta livre';
+    $id('alertaMsg').textContent='✅ Sensor A1: área monitorada está livre de lixo';
+    $id('alertaHora').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  // radar badge
+  $id('statusBtn').className='status-btn '+(status?'lixo':'livre');
+  $id('statusBtn').innerHTML=status?
+    `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg> Lixo detectado`:
+    `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg> Área livre`;
+  $id('radarChip').textContent=status?'● Objeto detectado':'● Área livre';
+  $id('radarChip').className='chip '+(status?'vm':'vd');
+  radarDist=parseInt(dist);
+
+  if(sensores)atualizarMapa(sensores);
+
+  if(historico){
+    $id('tl').innerHTML=historico.map(r=>`
+      <div class="tl-ev">
+        <div class="tl-ico ${r.lixo?'lixo':'livre'}">
+          ${r.lixo?
+            '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H8L6 6"/></svg>':
+            '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'}
+        </div>
+        <div>
+          <div class="tl-txt">${r.lixo?'Lixo detectado':'Área livre'} — ${r.sensor_id||'A1'}</div>
+          <div class="tl-hora">${fmtHora(r.criado_em)}</div>
+        </div>
+        <div class="tl-dist">${parseFloat(r.distancia).toFixed(0)} cm</div>
+      </div>`).join('');
+  }
+
+  if(porHora){
+    chHora.data.datasets[0].data=porHora;
+    chHora.data.datasets[0].backgroundColor=porHora.map(v=>v>0?'#EF9A9A':'#BBDEFB');
+    chHora.update('none');
+  }
+
+  // gráfico distância
+  const dl=chDist.data.labels,dd=chDist.data.datasets[0].data,dc=chDist.data.datasets[0].pointBackgroundColor;
+  dl.push(dl.length+1);dd.push(parseInt(dist));dc.push(status?'#C62828':'#1565C0');
+  if(dl.length>30){dl.shift();dd.shift();dc.shift();}
+  chDist.update('none');
+
+  $id('ultimaAtual').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function fmtHora(str){
+  if(!str)return'';
+  const d=new Date(str.replace(' ','T'));
+  if(isNaN(d))return str;
+  const h=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  return d.toDateString()===new Date().toDateString()?'hoje '+h:d.toLocaleDateString('pt-BR')+' '+h;
+}
+
+// ── SIMULAÇÃO DEMO ────────────────────────────────────────
+let sl=true,sd=7,loop=0;
+function simular(){
+  loop++;if(loop%4===0)sl=!sl;
+  const d=sl?Math.round(30+Math.random()*60):Math.round(140+Math.random()*50);
+  if(sl)sd++;
+  const taxa=Math.min(99,Math.round(sd/(loop+7)*100));
+  const ph=new Array(24).fill(0);
+  [8,9,11,13,14].forEach(h=>{ph[h]=Math.floor(1+Math.random()*2);});
+  atualizarUI({
+    status:sl,dist:d,det:sd,taxa,
+    sensores:[{sensor_id:'A1',lixo:sl?1:0,distancia:d,latitude:-10.5014,longitude:-36.9614}],
+    historico:[
+      {lixo:sl?1:0,sensor_id:'A1',distancia:d,criado_em:hrec(0)},
+      {lixo:0,sensor_id:'A1',distancia:185,criado_em:hrec(77)},
+      {lixo:1,sensor_id:'A1',distancia:63,criado_em:hrec(164)},
+      {lixo:0,sensor_id:'A1',distancia:193,criado_em:hrec(250)},
+      {lixo:1,sensor_id:'A1',distancia:52,criado_em:hrec(337)},
+      {lixo:0,sensor_id:'A1',distancia:178,criado_em:hrec(420)},
+    ],
+    porHora:ph
+  });
+}
+function hrec(m){const d=new Date(Date.now()-m*60000);return d.toISOString().replace('T',' ').substring(0,16);}
+
+// ── BUSCAR DO SERVIDOR ────────────────────────────────────
+async function buscar(){
+  if(!API){simular();return;}
+  try{
+    const[rs,re,rh]=await Promise.all([
+      fetch(API+'/api/status'),fetch(API+'/api/estatisticas'),fetch(API+'/api/historico?limite=10')
+    ]);
+    const s=await rs.json(),e=await re.json(),h=await rh.json();
+    if(!s.length)return;
+    const ph=new Array(24).fill(0);
+    (e.por_hora||[]).forEach(x=>{ph[parseInt(x.hora)]=x.com_lixo||0;});
+    atualizarUI({status:s[0].lixo===1,dist:parseFloat(s[0].distancia).toFixed(0),
+      det:e.total_lixo,taxa:e.taxa_ocupacao,sensores:s,historico:h,porHora:ph});
+    $id('statusBadge').className='nav-badge ok';
+    $id('statusTxt').textContent='ESP32 online';
+  }catch{
+    $id('statusBadge').className='nav-badge err';
+    $id('statusTxt').textContent='Modo demo';
+  }
+}
+
+buscar();
+setInterval(buscar,5000);
+loopRadar();
+
+// ── JOGO REFLORESTAR ──────────────────────────────
+let jogoAtivo=false,jogoCronometro=null,jogoTempo=60,jogoSpawn=null;
+let jogoNomeAtual='',jogoPontosAtual=0,jogoMudasAtual=0;
+const mudaEmojis=['🌱','🌿','🌳','🌲','🍀'];
+const ranking=[
+  {nome:'Ariel',pts:350},
+  {nome:'Lucas',pts:300},
+  {nome:'Maria',pts:280}
+];
+
+function iniciarJogo(){
+  const inp=document.getElementById('jogoNome');
+  jogoNomeAtual=(inp.value.trim()||'Jogador');
+  jogoPontosAtual=0;jogoMudasAtual=0;jogoTempo=60;
+  document.getElementById('jogoInicio').style.display='none';
+  document.getElementById('jogoFim').style.display='none';
+  document.getElementById('jogoPontos').textContent='0';
+  document.getElementById('jogoMudas').textContent='0';
+  document.getElementById('jogoCrono').textContent='60';
+  document.getElementById('jogoCrono').className='cronometro';
+  jogoAtivo=true;
+  // Limpa mudas antigas
+  const arena=document.getElementById('jogoArena');
+  arena.querySelectorAll('.muda').forEach(m=>m.remove());
+
+  jogoCronometro=setInterval(()=>{
+    jogoTempo--;
+    const crono=document.getElementById('jogoCrono');
+    crono.textContent=jogoTempo;
+    if(jogoTempo<=10)crono.className='cronometro urgente';
+    if(jogoTempo<=0){terminarJogo();}
+  },1000);
+
+  jogoSpawn=setInterval(()=>{
+    if(jogoAtivo)spawnMuda();
+  },800);
+  // Spawna algumas logo de início
+  setTimeout(spawnMuda,100);
+  setTimeout(spawnMuda,400);
+}
+
+function spawnMuda(){
+  const arena=document.getElementById('jogoArena');
+  if(!jogoAtivo)return;
+  if(arena.querySelectorAll('.muda').length>10)return;
+  const m=document.createElement('div');
+  m.className='muda';
+  m.textContent=mudaEmojis[Math.floor(Math.random()*mudaEmojis.length)];
+  const arW=arena.clientWidth-48,arH=arena.clientHeight-60;
+  m.style.left=Math.max(10,Math.random()*arW)+'px';
+  m.style.top=Math.max(10,Math.random()*arH)+'px';
+  m.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(!jogoAtivo)return;
+    jogoPontosAtual+=10;jogoMudasAtual++;
+    document.getElementById('jogoPontos').textContent=jogoPontosAtual;
+    document.getElementById('jogoMudas').textContent=jogoMudasAtual;
+    // Animação de pontos
+    const pf=document.createElement('div');
+    pf.className='pontos-float';pf.textContent='+10';
+    pf.style.left=m.style.left;pf.style.top=m.style.top;
+    arena.appendChild(pf);
+    setTimeout(()=>pf.remove(),1000);
+    m.remove();
+    spawnMuda();
+  });
+  // Remove muda automática após 3s
+  setTimeout(()=>{if(m.parentNode)m.remove();},3000);
+  arena.appendChild(m);
+}
+
+function terminarJogo(){
+  jogoAtivo=false;
+  clearInterval(jogoCronometro);
+  clearInterval(jogoSpawn);
+  const arena=document.getElementById('jogoArena');
+  arena.querySelectorAll('.muda').forEach(m=>m.remove());
+  document.getElementById('jogoFim').style.display='flex';
+  document.getElementById('jogoPtsFinal').textContent=jogoPontosAtual+' pts';
+  document.getElementById('jogoMudasFinal').textContent='🌱 '+jogoMudasAtual+' mudas plantadas × 10 = '+jogoPontosAtual+' pontos';
+  // Adiciona ao ranking
+  ranking.push({nome:jogoNomeAtual,pts:jogoPontosAtual});
+  ranking.sort((a,b)=>b.pts-a.pts);
+  if(ranking.length>8)ranking.length=8;
+  renderizarRanking();
+}
+
+function resetJogo(){
+  document.getElementById('jogoFim').style.display='none';
+  document.getElementById('jogoInicio').style.display='flex';
+  document.getElementById('jogoCrono').textContent='60';
+  document.getElementById('jogoCrono').className='cronometro';
+  document.getElementById('jogoPontos').textContent='0';
+  document.getElementById('jogoMudas').textContent='0';
+}
+
+const medalhas=['🥇','🥈','🥉'];
+function renderizarRanking(){
+  const rl=document.getElementById('jogoRanking');
+  rl.innerHTML=ranking.map((r,i)=>`
+    <div class="jr-item ${r.nome===jogoNomeAtual?'destaque':''}">
+      <span class="jr-pos">${medalhas[i]||'#'+(i+1)}</span>
+      <span class="jr-nome">${r.nome}</span>
+      <span class="jr-pts">${r.pts} pts</span>
+    </div>`).join('');
+}
+
+</script>
+</body>
+</html>
